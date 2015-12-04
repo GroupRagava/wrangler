@@ -5137,11 +5137,13 @@ dw.wrangler_export.javascript = function(w){
 }
 
 dw.wrangler_export.python = function(w){
-
+	console.log("hihihihihihi")
 	var parse_python_parameter = function(x){
+
 		if(x===true) return 'True'
 		if(x===false) return 'False'
 		if(x===undefined) return 'None'
+
 		if(typeOf(x)==='object' ||typeOf(x)==='function'){
 			if(x.is_transform){
 				return parse_python_transform(x)
