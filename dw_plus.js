@@ -4,6 +4,7 @@ dwp.eigenvectors = [];
 dwp.processQueue = [];
 dwp.numOfChunk = 0;
 dwp.chunks = {};
+dwp.dataDic = {};
 
 dwp.addEigenvector = function(eigenvector,chunkID,group,table) {
 	if(dwp.eigenvectors.length == group) {
@@ -82,7 +83,10 @@ dwp.wrangler = function(options,chunkID){
 
 	
 	
-	console.log("startPoint");
+	console.log("startPoint" + chunkID);
+	console.log(table);
+	dwp.dataDic[chunkID] = table;
+
 	var eigenvector = []
 	console.log(table);
 	table.forEach(function(c, i){
@@ -93,7 +97,7 @@ dwp.wrangler = function(options,chunkID){
 			}
 		})
     var groupCount = dwp.eigenvectors.length
-	var group = dwp.groupEigenvector(eigenvector,chunkID,originalTable);
+	var group = dwp.groupEigenvector(eigenvector,chunkID,table);
 	console.log("Queue")
 	console.log(dwp.processQueue[0])
 	var chunkState = document.getElementById("ChunkState")
@@ -191,7 +195,7 @@ dwp.transform_menu = function(){
 		{name:'Title', sub:[{name:'DataWranglerPlus', context : 'DataWranglerPlus'}]},
 		{name:'Chunk', sub:[{name:'PDatasourceNum',context : 'Datasource Processed : '+ processedCounter}]},	
 		{name:'Chunk', sub:[{name:'DatasourceNum',context : 'Datasource Detected : ' + dwp.eigenvectors.length}]},
-		{name:'Chunk', sub:[{name:'ChunkState',context : 'Chunk Processed : '+ chunkCounter + '/10000'}]}		
+		{name:'Chunk', sub:[{name:'ChunkState',context : 'Chunk Processed : '+ chunkCounter + '/' + dwp.numOfChunk}]}		
 	
 
 	];

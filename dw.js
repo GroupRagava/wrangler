@@ -5126,16 +5126,23 @@ dw.wrangler_export.javascript = function(w){
 \n"
 	
 	var wrangler = 'w = dw.wrangle()\n'
-
-
-
-
-	return preamble + wrangler + w.filter(function(t){return t.active()}).map(function(t){
-		var comment = '\n\/* '+t.comment()+' *\/\n';
-		return comment+'w.add('+parse_javascript_transform(t)+')'
-
+	W = dw.wrangle();
+	w.filter(function(t){return t.active()}).map(function(t){
+		W.add(t)
 		
-	}).join('\n') + exportComment+ exportCode
+	});
+	console.log("lalalalala")
+	console.log(table)
+	
+	dwp.scriptGroup.push(W)
+	for (var i = 0; i < dwp.chunkGroup[dwp.scriptGroup.length - 1].length; i++) {
+    	var ttable = []
+		ttable.push(dwp.dataDic[dwp.chunkGroup[dwp.scriptGroup.length - 1][i]])
+		W.apply(ttable)
+    //Do something
+	}
+	//console.log(W.apply(ttable))
+	//console.log(ttable)
 	
 }
 
@@ -8325,19 +8332,75 @@ dw.wrangler = function(options){
 	}
 	function updateExport(){
 		var dt = dwp.processQueue.shift();
-		console.log(updateCotents(table));
+		//console.log(updateCotents(table));
 		if(dt === undefined) {
-			alert("job done!")
+			var textToWrite = readDic();
+			var textFileAsBlob = new Blob([textToWrite], {type:'text/plain'});
+			var fileNameToSaveAs = "output.txt";
+			var downloadLink = document.createElement("a");
+			downloadLink.download = fileNameToSaveAs;
+    		downloadLink.innerHTML = "Download File";
+    		if (window.webkitURL != null)
+    		{
+        	// Chrome allows the link to be clicked
+        	// without actually adding it to the DOM.
+        		downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+    		}
+    		else
+    		{
+        		// Firefox requires the link to be added to the DOM
+        		// before it can be clicked.
+        		downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+        		downloadLink.onclick = destroyClickedElement;
+        		downloadLink.style.display = "none";
+        		document.body.appendChild(downloadLink);
+    		}
+
+    		downloadLink.click();
+    		alert("All jobs done! New data file is downloading!")
 		}else {
 		//var DatasourceNum = document.getElementById("PDatasourceNum")
 			processedCounter++;
 			startWrangler(dt);
+			//var W = dw.wrangle()
+			//W.add()
+			//dwp.processQueue.push(W)
+			dw.wrangler_export(table, {format:'javascript', wrangler:w})
 		}
 		
 		//DatasourceNum.innerHTML = "Datasource Processed : " + processedCounter;
 
 
 	}
+
+	function readDic() {
+		var result = "";
+		for(var key in dwp.dataDic) {
+			var table = dwp.dataDic[key];
+			var colNum = table.length;
+			if (colNum == 0) {
+				return result;
+			}
+			var rowNum = table[0].length;
+			var i = 0;
+			while (i < rowNum) {
+				var j = 0;
+				while (j < colNum) {
+					if (table[j][i] === undefined) {
+						j++;
+						continue;
+					}
+					result = result.concat(table[j][i]);
+					result = result.concat('\t');
+					j++;
+				}
+				result = result.concat("\n");
+				i++;
+			}
+		}
+		return result;
+	}
+
 
 	 function updateCotents(table){
 		var x = '';
