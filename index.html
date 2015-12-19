@@ -132,11 +132,11 @@ $(document).ready(function() {
 		
 		jQuery('#table').append(upload)
 
-		var prompt = dw.jq('div').attr('id','uploadPrompt').append('Paste data below to begin wrangling').addClass('wranglerPrompt');
+		var prompt = dw.jq('div').attr('id','uploadPrompt').append('Paste data File URL below to begin wrangling').addClass('wranglerPrompt');
 		upload.append(prompt)
 		
 
-		upload.append(dw.jq('button').attr('id','wranglerInputSubmit').append('Wrangle'))
+		upload.append(dw.jq('button').attr('id','wranglerInputSubmit').append('WranglePlus'))
 		
 
 		
@@ -150,18 +150,19 @@ $(document).ready(function() {
 		jQuery('button').click(function(){
 
 
-			var url = inputArea.attr('value');
+			//var url = inputArea.attr('value');
+			var url = "http://localhost/wrangler/test/labor.txt";
 			var rawFile = new XMLHttpRequest();
     		rawFile.open("GET",url,true);
     		rawFile.onreadystatechange = function (){
         		if(rawFile.readyState === 4){
             		if(rawFile.status === 200 || rawFile.status == 0){
                 		var data = rawFile.responseText;
-						console.log(data);
+						//console.log(data);
 
 
                 		var lines = data.split("\n")
-                		var lineLimit = 50
+                		var lineLimit = 80
                 		var result = []
                 		var item = ""
                 		var i = 0;
@@ -178,6 +179,7 @@ $(document).ready(function() {
     						result.push(item)
     					}
            				i = 0
+           				dwp.numOfChunk = result.length
           				while( i < result.length) {
           					//console.log(result[i]);
           					var dt = dv.table(result[i])
@@ -189,7 +191,7 @@ $(document).ready(function() {
 							if(i == 0) {
 								startWrangler(dt)
 							}
-							startWrangler_plus(dt1, i)	
+							startWrangler_plus(dt1)	
 							i++;
           				}
             		}
@@ -211,7 +213,7 @@ $(document).ready(function() {
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	
-	<title>DataWrangler</title>
+	<title>DataWranglerPlus</title>
 
 </head>
 

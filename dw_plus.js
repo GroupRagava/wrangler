@@ -3,8 +3,9 @@ var dwp ={}
 dwp.eigenvectors = [];
 dwp.processQueue = [];
 dwp.numOfChunk = 0;
-dwp.chunks = {};
 dwp.dataDic = {};
+dwp.split = false;
+dwp.chunkCounter = -1;
 
 dwp.addEigenvector = function(eigenvector,chunkID,group,table) {
 	if(dwp.eigenvectors.length == group) {
@@ -12,6 +13,8 @@ dwp.addEigenvector = function(eigenvector,chunkID,group,table) {
 		dwp.chunkGroup.push(group0);
 		dwp.eigenvectors.push(eigenvector);
 		if(group != 0) {
+			//console.log(table)
+			//console.log(JSON.parse(JSON.stringify(table)))
 			dwp.processQueue.push(table);
 		}
 	}else {
@@ -26,13 +29,24 @@ dwp.addEigenvector = function(eigenvector,chunkID,group,table) {
 	return;
 	
 }
-dwp.eigenvectorThreshold = 0.2;
+
+var decopy = function(table){
+	var result = [];
+	for (var i = 0; i < table.length; i++) {
+		var col = [];
+		for (var j = 0; j < table[i].length; j++) {
+			col.push(table[i][j]);
+		}
+		result.push(col);
+	}
+	return result;
+}
+
+dwp.eigenvectorThreshold = 0.3;
 dwp.chunkGroup = [];
 dwp.scriptGroup = [];
-var chunkCounter = 0;
 var processedCounter = 0;
-dwp.groupEigenvector = function(eigenvector,chunkID,table) {
-	chunkCounter++;
+dwp.groupEigenvector = function(options, eigenvector,chunkID,table, originalTable) {
 	if(dwp.eigenvectors.length == 0) {
 		dwp.addEigenvector(eigenvector,chunkID,0,table);
 		return 0;
@@ -55,23 +69,152 @@ dwp.groupEigenvector = function(eigenvector,chunkID,table) {
 
 		}
 		
-		dwp.addEigenvector(eigenvector,chunkID,group,table);
-
+		if(group != length || dwp.split) {
+			dwp.addEigenvector(eigenvector,chunkID,group,table);
+		}else {
+			dwp.findBoundary(options,table,chunkID,originalTable)
+			//dwp.addEigenvector(eigenvector,chunkID,group,table);
+		}
 
 		return group;
 	}
 }
 
+var container = jQuery('#table')
+	var previewContainer = jQuery('#preview')
+
+	var initial_transforms = [];
+var startWrangler_plus_ = function(dt){
+		eigenvector = dwp.wrangler_({
+			tableContainer:container,
+			table:dt,
+			transformContainer:jQuery('#transformEditor'),
+			previewContainer:previewContainer,
+      dashboardContainer:jQuery("#wranglerDashboard"),
+			initial_transforms:initial_transforms
+		})
+		return eigenvector
+		//console.log(initial_transforms)
+
+}
+var startWrangler_plus = function(dt,chunkID){
+
+		dwp.wrangler({
+			tableContainer:container,
+			table:dt,
+			transformContainer:jQuery('#transformEditor'),
+			previewContainer:previewContainer,
+      dashboardContainer:jQuery("#wranglerDashboard"),
+			initial_transforms:initial_transforms
+		},chunkID)
+		//console.log(initial_transforms)
+
+	}
+
+dwp.findBoundary = function(options,table,chunkId,originalTable) {
+	console.log(dwp.dataDic)
+	
+	var targetingVector = dwp.eigenvectors[dwp.eigenvectors.length -1]
+	//console.log(targetingVector)
+	var lines = originalTable[0][0].split("\n")
+	var length = lines.length;
+	//console.log(length)
+	var boundary = length
+	var topVector = []
+	var topTable = ""
+	var delta = length
+	/*while(delta > 0.5) {
+		delta = (delta / 2) | 0
+		if (dwp.isSame(topVector,targetingVector)) {
+			boundary += delta;
+		}
+		else {
+			boundary -= delta;
+		}
+		topTable = ""
+		for(var i = 0; i<boundary;i++) {
+			topTable = topTable.concat(lines[i])
+    		topTable = topTable.concat("\n")
+		}
+		//console.log(topTable)
+
+		initial_transforms = dw.raw_inference(topTable).transforms
+		var dt = dv.table(topTable)
+		topVector = startWrangler_plus_(dt)
+	}*/
+	while(!dwp.isSame(topVector,targetingVector) && boundary > 10) {
+	 	boundary = boundary-1
+	 	topTable = ""
+	 	for(var i = 0; i<boundary;i++) {
+	 		topTable = topTable.concat(lines[i])
+	    		topTable = topTable.concat("\n")
+	 	}
+	 	//console.log(topTable)
+
+	 	initial_transforms = dw.raw_inference(topTable).transforms
+	 	var dt = dv.table(topTable)
+	 	topVector = startWrangler_plus_(dt)
+	 	//console.log(topVector)
+
+	}
+	dwp.split = true;
+	initial_transforms = dw.raw_inference(topTable).transforms
+	dwp.numOfChunk++
+	var dt1 = dv.table(topTable)
+	dwp.chunkCounter--
+	startWrangler_plus(dt1)
+	//dwp.split = true;
+	var bottomTable = ""
+	//console.log(boundary)
+	for(var i = (boundary|0) +1; i<length;i++) {
+		//console.log(i)
+			bottomTable = bottomTable.concat(lines[i])
+    		bottomTable = bottomTable.concat("\n")
+		}
+	initial_transforms = dw.raw_inference(bottomTable).transforms
+	//console.log(bottomTable)
+	var dt2 = dv.table(bottomTable)
+	//console.log(startWrangler_plus_(dt))
+	startWrangler_plus(dt2)
+	//console.log(dt)
+	dwp.split = false
+			
+
+		//console.log(initial_transforms)
+		
+		//dwp.wrangler(options,topTable) 
+
+		
+
+		//tryVector = dwp.get_column_stats_plus(table,length)
+		//if(dwp.diff(targetingVector,tryVector))
+	
+}
+dwp.isSame = function(v1,v2) {
+	var threshold = 0.1
+	if(v1.length!=v2.length) {
+		return false
+	}
+	var diff = 0;
+	for(var i = 0;i<v1.length;i++) {
+		diff+= Math.abs(v1[i]-v2[i])
+	}
+	if(diff > threshold) {
+		return false
+	}
+	return true;
+}
+
 var initial_transforms_plus
 
-dwp.wrangler = function(options,chunkID){
-	dwp.numOfChunk++;
+dwp.wrangler_ = function(options){
+	//dwp.numOfChunk++;
 	var tContainer = options.tableContainer, previewContainer = options.previewContainer, transformContainer = options.transformContainer, table = options.table, originalTable = table.slice(), temporaryTable, vtable, afterTable, transform,
 		engine, suggestions, editor, wrangler = {}, script, w = dw.wrangle(), tableSelection, scriptContainer = jQuery(document.createElement('div')).attr('id','scriptContainer'), editorContainer = jQuery(document.createElement('div')).attr('id','editorContainer'), dashboardContainer = options.dashboardContainer;
 	//console.log("table")
-	//console.log(table);
-	dwp.chunks[chunkID] = table;
-	console.log(dwp.chunks);
+	//console.log(options.initial_transforms);
+	//dwp.chunks[chunkID] = table;
+	//console.log(dwp.chunks);
 	initial_transforms_plus = options.initial_transforms
 	if(options.initial_transforms){
 		options.initial_transforms.forEach(function(t){
@@ -79,16 +222,52 @@ dwp.wrangler = function(options,chunkID){
 		})
 		w.apply([table]);
 	}
-	
+	copyTable = table.slice();
+	if(options.initial_transforms){
+		options.initial_transforms.forEach(function(t){
+			w.add(t);
+		})
+		w.apply([copyTable]);
+	}
 
+	dwp.dataDic[dwp.chunkCounter] = copyTable
 	
-	
-	console.log("startPoint" + chunkID);
-	console.log(table);
-	dwp.dataDic[chunkID] = table;
+	//console.log("startPoint" + chunkID);
+	//console.log(table);
+	//dwp.dataDic[chunkID] = table;
 
 	var eigenvector = []
-	console.log(table);
+	//console.log(table);
+	table.forEach(function(c, i){
+			var length = c.length;
+			var test = dw.get_column_stats_plus(c,length);
+			for(var i = 0; i < test.length;i++) {
+				eigenvector.push(test[i]);
+			}
+		})
+    return eigenvector
+
+
+
+	
+
+}
+
+
+dwp.wrangler = function(options){
+	dwp.chunkCounter++;
+	var tContainer = options.tableContainer, previewContainer = options.previewContainer, transformContainer = options.transformContainer, table = options.table, originalTable = table.slice(), temporaryTable, vtable, afterTable, transform,
+		engine, suggestions, editor, wrangler = {}, script, w = dw.wrangle(), tableSelection, scriptContainer = jQuery(document.createElement('div')).attr('id','scriptContainer'), editorContainer = jQuery(document.createElement('div')).attr('id','editorContainer'), dashboardContainer = options.dashboardContainer;
+	initial_transforms_plus = options.initial_transforms
+	if(options.initial_transforms){
+		options.initial_transforms.forEach(function(t){
+			w.add(t);
+		})
+		w.apply([table]);
+	}
+	dwp.dataDic[dwp.chunkCounter] = table;
+
+	var eigenvector = []
 	table.forEach(function(c, i){
 			var length = c.length;
 			var test = dw.get_column_stats_plus(c,length);
@@ -97,11 +276,9 @@ dwp.wrangler = function(options,chunkID){
 			}
 		})
     var groupCount = dwp.eigenvectors.length
-	var group = dwp.groupEigenvector(eigenvector,chunkID,table);
-	console.log("Queue")
-	console.log(dwp.processQueue[0])
+	var group = dwp.groupEigenvector(options,eigenvector,dwp.chunkCounter,table,originalTable);
 	var chunkState = document.getElementById("ChunkState")
-	chunkState.innerHTML = "Chunk Processed : " + chunkCounter + "/" + dwp.numOfChunk;
+	chunkState.innerHTML = "Chunk Processed : " + (dwp.chunkCounter+1) + "/" + dwp.numOfChunk;
 	if(groupCount == group) {
 		var DatasourceNum = document.getElementById("DatasourceNum")
 		groupCount++
@@ -112,21 +289,6 @@ dwp.wrangler = function(options,chunkID){
 
 	
 
-}
-
-//var tid = setTimeout(mycode, 2000);
-function mycode() {
-      var groupCount = dwp.eigenvectors.length
-	var group = dwp.groupEigenvector(dwp.eigenvectors[0],1);
-	
-	var chunkState = document.getElementById("ChunkState")
-	chunkState.innerHTML = "Chunk Processed : " + chunkCounter + "/" + dwp.numOfChunk;
-	if(groupCount == group) {
-		var DatasourceNum = document.getElementById("DatasourceNum")
-		groupCount++
-		DatasourceNum.innerHTML = "Datasource Detected : " + groupCount;
-	}
-  //tid = setTimeout(mycode, 2000); // repeat myself
 }
 
 
@@ -195,7 +357,7 @@ dwp.transform_menu = function(){
 		{name:'Title', sub:[{name:'DataWranglerPlus', context : 'DataWranglerPlus'}]},
 		{name:'Chunk', sub:[{name:'PDatasourceNum',context : 'Datasource Processed : '+ processedCounter}]},	
 		{name:'Chunk', sub:[{name:'DatasourceNum',context : 'Datasource Detected : ' + dwp.eigenvectors.length}]},
-		{name:'Chunk', sub:[{name:'ChunkState',context : 'Chunk Processed : '+ chunkCounter + '/' + dwp.numOfChunk}]}		
+		{name:'Chunk', sub:[{name:'ChunkState',context : 'Chunk Processed : '+ (dwp.chunkCounter + 1) + '/' + dwp.numOfChunk}]}		
 	
 
 	];
@@ -206,7 +368,7 @@ dwp.transform_menu = function(){
 		
 	menu.draw = function(){
 		
-		console.log(transforms)
+		//console.log(transforms)
 		var idx = d3.range(transforms.length)
 
 		var sub = vis.append('div').attr('id', 'menu').selectAll('div.menu_group')
@@ -246,399 +408,4 @@ var startWrangler_update = function(dt){
 			plus:true
 		})
 
-	}
-/*
-dwp.wrangler = function(options){
-	var tContainer = options.tableContainer, previewContainer = options.previewContainer, transformContainer = options.transformContainer, table = options.table, originalTable = table.slice(), temporaryTable, vtable, afterTable, transform,
-		 suggestions, editor, wrangler = {}, script, w = dw.wrangle(), tableSelection, scriptContainer = jQuery(document.createElement('div')).attr('id','scriptContainer'), editorContainer = jQuery(document.createElement('div')).attr('id','editorContainer'), dashboardContainer = options.dashboardContainer;
-
-	//jQuery('#transformEditor').removeClass('selectedExportHeader');
-	//jQuery("#wranglerDashboard").empty();
-	
-	if(options.initial_transforms){
-		options.initial_transforms.forEach(function(t){
-			w.add(t);
-		})
-		w.apply([table]);
-	}
-	console.log("Export")
-	
-	//transformContainer.append(editorContainer).append(scriptContainer)
-
-	engine = dw.engine().table(table);
-	console.log(engine)
-
-	//var transform_menu_plus = dwp.transform_menu()
-	//var transform_menu = dw.transform_menu(dashboardContainer, {interaction:interaction, onclear:clear_editor, onedit:interaction, table:undefined})
-
-
-	function interaction(params){
-
-		dw.log(params)
-		var selection = tableSelection.add(params);
-	console.log("ExportInteraction")
-
-		params.rows = selection.rows();
-		params.cols = selection.cols();
-		suggestions = engine.table(table).input(params).run(13);
-		transform = suggestions[0];
-
-		drawEditor();
-
-
-
-		if (enable_proactive) {
-
-			if(params.type==dw.engine.clear ||
-				 params.type==dw.engine.execute) {
-
-
-				drawTable();
-			}
-			else if(params.type === dw.engine.promote){
-				editor.working();
-			}
-			else{
-
-				if(params.type===dw.engine.param){
-					editor.working()
-				}
-				else{
-					editor.first_suggestion();
-				}
-			}
-
-		}
-		else {
-
-			if(params.type === dw.engine.promote){
-				editor.working();
-			}
-			else{
-
-				if(params.type===dw.engine.param){
-					editor.working()
-				}
-				else{
-					editor.first_suggestion();
-				}
-			}
-
-		}
-
-		transform_menu.update({transform:editor.transform() || transform})
-
-	}
-
-	function infer_schema(){
-		var typeTransforms = dw.infer_type_transforms(table);
-		typeTransforms.forEach(function(t){
-			t.sample_apply([table])
-		})
-	}
-
-	function table_change(){
-		transform = editor.transform()
-		drawTable();
-	}
-
-	var warned = false;
-	function confirmation(options){
-		if(!warned){
-			warned = true;
-			alert('Wrangler only supports up to 40 columns and 1000 rows.  We will preview only the first 40 columns and 1000 rows of data.')
-
-		}
-	}
-
-	vtable = dw.vtable(tContainer, {
-		interaction:interaction,
-		ontablechange:table_change,
-		onexecute:execute_transform,
-		onconfirm:confirmation,
-		wrangler:w
-	})
-
-
-	afterTable = dw.vtable(previewContainer, {
-		interaction:function(params){}
-	})
-
-	function highlight_suggestion(params){
-		preview(params.transform)
-
-		transform_menu.update({transform:params.transform})
-		dw.log({type:'highlight_suggestion', suggestion:params.transform})
-	}
-
-	function execute_transform(transform, params){
-		transform.sample_apply([table]);
-		dw.summary.clear_cache();
-		infer_schema()
-		w.add(transform)
-		tableSelection.clear()
-		interaction({type:dw.engine.execute, transform:transform})
-		drawScript()
-
-		var x = jQuery('#scriptTransformContainer')
-		x.scrollTop(100000);
-
-
-	}
-
-	function clear_editor(){
-		tableSelection.clear()
-		interaction({type:dw.engine.clear})
-	}
-
-
-	function promote_transform(transform, params){
-		tableSelection.clear()
-		interaction({type:dw.engine.promote, transform:transform})
-	}
-
-
-
-	tableSelection = dw.table_selection(vtable);
-
-	wrangler.draw = function(){
-		suggestions = engine.table(table).run();
-		drawTable();
-		drawEditor()
-		drawScript()
-	}
-
-
-
-	function drawTable(){
-		preview(transform);
-	}
-
-	function drawEditor(){
-		editorContainer.empty();
-
-		editor = dw.editor(editorContainer, suggestions, {onpromote:promote_transform, onhighlight:highlight_suggestion, onselect:execute_transform, onedit:interaction, table:table}).draw()
-	}
-
-	function exportTable(){
-		var select = dw.jq('select').addClass('exportOptions');
-
-		var buttons = jQuery('<form>\
-		<input type="radio" name="exportType" value="data" checked="checked"/> Data<br />\
-		<input type="radio" name="exportType" value="script" /> Script\
-		</form>')
-
-		buttons.find(':radio').height(15).width(15).click(function(e){
-			select.empty()
-			add_export_options()
-		})
-
-		var add_export_options = function(){
-			if(buttons.find(':radio:checked').val()=='data'){
-				add_export_option('csv', 'Comma-Separated Values (CSV)');
-				add_export_option('tsv', 'Tab-Separated Values (TSV)');
-				add_export_option('rowjson', 'Row-Oriented JSON (One object per row)');
-				add_export_option('columnjson', 'Column-Oriented JSON (One array per column)');
-				add_export_option('lookup_table', 'Lookup Table (currently supports 2 column table)');
-				inputArea.attr('value', dw.wrangler_export(table, {}))
-				inputArea.focus();
-				inputArea.select();
-				dw.log({type:'export', params:{type:'csv'}})
-			}
-			else{
-				add_export_option('python', 'Python');
-				add_export_option('javascript', 'JavaScript');
-				inputArea.attr('value', dw.wrangler_export(table, {format:'python', wrangler:w}))
-				inputArea.focus();
-				inputArea.select();
-				dw.log({type:'export', params:{type:'python'}})
-				instructions.empty();
-
-								instructions.append(python)
-
-
-			}
-		}
-
-		var add_export_option = function(type, name){
-
-
-			dw.add_select_option(select, name, type);
-
-
-		}
-		var python = 'To run python code, run <span class=\'terminal\'>easy_install datawrangler</span> or download the <a class=\'runtimeLink\' href=\'http://vis.stanford.edu/wrangler/files/python/DataWrangler-0.1.tar.gz\' target=\'_blank\'> python runtime.</a>'
-		var javascript = 'To run javascript code, download the <a class=\'runtimeLink\' href=\'http://vis.stanford.edu/wrangler/files/javascript/dwrt-r0.1.js\' target=\'_blank\'> javascript runtime</a>.'
-		select.change(function(){
-			inputArea.attr('value', dw.wrangler_export(table, {format:select.val(), wrangler:w}))
-			jQuery('.exportHeader').removeClass('selectedExportHeader');
-			jQuery(this).addClass('selectedExportHeader')
-			inputArea.focus();
-			inputArea.select();
-			dw.log({type:'export', params:{type:select.val()}})
-			instructions.empty();
-			if(select.val()==='python'){
-				instructions.append(python)
-			}
-			if(select.val()==='javascript'){
-				instructions.append(javascript)
-			}
-		})
-
-
-		jQuery("#table").hide();
-		var upload = dw.jq('div').attr('id', 'uploadContainer')
-
-
-		upload.append(buttons)
-
-
-		upload.append(select);
-
-		var instructions = dw.jq('div').attr('id', 'scriptInstructions')
-
-
-
-		jQuery('#profilerCenterPanel').prepend(upload)
-
-		add_export_option('csv', 'Comma-Separated Values (CSV)');
-		add_export_option('tsv', 'Tab-Separated Values (TSV)');
-		add_export_option('rowjson', 'Row-Oriented JSON (One object per row)');
-		add_export_option('columnjson', 'Column-Oriented JSON (One array per column)');
-		add_export_option('lookup_table', 'Lookup Table (currently supports 2 column table)');
-
-
-
-
-
-
-		upload.append(dw.jq('button').attr('id','wranglerInputSubmit').append('Back to Wrangling')
-						.click(function(){
-							upload.remove();
-							jQuery("#table").show()
-						})
-
-		)
-
-
-
-		var inputArea = dw.jq('textArea').attr('id','wranglerInput');
-		upload.append(inputArea)
-		inputArea.attr('value', dw.wrangler_export(table, {}))
-
-		jQuery('.exportHeader:first').addClass('selectedExportHeader');
-
-		inputArea.focus();
-		inputArea.select();
-
-		upload.append(instructions)
-
-		clear_editor();
-		dw.log({type:'export', params:{type:'csv'}})
-	}
-
-	function script_interaction(params){
-		temporaryTable = originalTable.slice();
-
-
-
-
-		dw.progress_call(w.apply, w, [temporaryTable])
-		dw.log({type:'edit_script', params:params})
-		table = temporaryTable;
-		clear_editor();
-		wrangler.draw();
-
-	}
-	function updateExport(){
-		dt = dwp.processQueue[0];
-		startWrangler_update(dt);
-
-	}
-
-	function drawScript(){
-		var scrollTop = jQuery('#scriptTransformContainer').scrollTop();
-		scriptContainer.empty();
-		script = dw.script(scriptContainer, w, {
-			edit:function(params){
-				script_interaction(params)
-
-
-
-
-			},
-			onexport:updateExport,
-			onedit:script_interaction,
-			table:table
-
-
-
-
-
-		}).draw()
-		jQuery('#scriptTransformContainer').scrollTop(scrollTop);
-	}
-
-	function preview(transform){
-		dw.preview(vtable, table, transform, afterTable, tableSelection);
-	}
-
-
-	jQuery(document).bind('keydown', function(event){
-
-		var type = event && event.srcElement && event.srcElement.type
-
-		if(type!='text'){
-			switch(event.which){
-		          	case 8:
-
-		           	break
-		        case 9:
-					editor.promote()
-
-
-					if(type!='textarea'){
-		                event.preventDefault()
-		            }
-		            break
-		        case 38:
-
-					editor.prev()
-					event.preventDefault()
-		            break
-		        case 40:
-
-					editor.next()
-		            event.preventDefault()
-		            break
-		        case 13:
-
-					transform = editor.transform();
-					execute_transform(transform)
-					if(type!='textarea'){
-		                event.preventDefault()
-		            }
-		            break
-				case 27:
-					clear_editor();
-					break
-		    }
-
-		}
-	    if(type!='textarea'){
-
-	    }
-	})
-
-	infer_schema()
-
-
-
-
-	wrangler.draw();
-
-
-
-	return wrangler;
 }
-*/

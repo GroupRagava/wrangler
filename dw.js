@@ -5131,16 +5131,42 @@ dw.wrangler_export.javascript = function(w){
 		W.add(t)
 		
 	});
-	console.log("lalalalala")
-	console.log(table)
+	//console.log("lalalalala")
+	//console.log(table)
 	
 	dwp.scriptGroup.push(W)
 	for (var i = 0; i < dwp.chunkGroup[dwp.scriptGroup.length - 1].length; i++) {
+		if (i == 0 && dwp.dataDic[dwp.chunkGroup[dwp.scriptGroup.length - 1][i + 1]].length < dwp.dataDic[dwp.chunkGroup[dwp.scriptGroup.length - 1][0]].length) {
+			continue;
+		}
     	var ttable = []
 		ttable.push(dwp.dataDic[dwp.chunkGroup[dwp.scriptGroup.length - 1][i]])
+		console.log(ttable)
 		W.apply(ttable)
     //Do something
 	}
+
+	// dwp.scriptGroup.push(W)
+	// var ttable = []
+	// var joinChunkID;
+	// if (dwp.chunkGroup[dwp.scriptGroup.length - 1].length > 0) {
+	// 	joinChunkID = dwp.chunkGroup[dwp.scriptGroup.length - 1][0];
+	// }
+	// for (var i = 1; i < dwp.chunkGroup[dwp.scriptGroup.length - 1].length; i++) {
+    	
+	// 	var itemChunkId = dwp.chunkGroup[dwp.scriptGroup.length - 1][i]
+	// 	var content = dwp.dataDic[itemChunkId]
+	// 	for (var j = 0; j < dwp.dataDic[itemChunkId].length; j++) {
+	// 		dwp.dataDic[joinChunkID][j] = dwp.dataDic[joinChunkID][j].concat(dwp.dataDic[itemChunkId][j]);
+	// 	}
+	// 	delete dwp.dataDic[itemChunkId]
+	// 	//console.log(ttable)
+		
+ //    //Do something
+	// }
+	// ttable.push(dwp.dataDic[joinChunkID])
+	// console.log(ttable)
+	// W.apply(ttable)
 	//console.log(W.apply(ttable))
 	//console.log(ttable)
 	
@@ -6472,17 +6498,17 @@ dw.raw_inference = function(raw_text){
 	
 	var inference = {}
 	var delimiterStrength = Math.max(commas, tabs, pipes);
-	var cutoff = .8*newlines
+	var cutoff = .4*newlines
 	if(delimiterStrength > cutoff){
 		if(commas >= cutoff){
 			inference.type = 'csv'
 			inference.delimiter = ','
 		}
-		else if(tabs >= cutoff){
+		if(tabs >= cutoff){
 			inference.type = 'tsv'
 			inference.delimiter = '\t'
 		}
-		else if(pipes >= cutoff){
+		if(pipes >= cutoff){
 			inference.type = 'pipes'
 			inference.delimiter = '\\|'
 		}
@@ -8332,8 +8358,10 @@ dw.wrangler = function(options){
 	}
 	function updateExport(){
 		var dt = dwp.processQueue.shift();
+		//var dt = jQuery.extend(true, [], dwp.processQueue.shift());
 		//console.log(updateCotents(table));
 		if(dt === undefined) {
+			dw.wrangler_export(table, {format:'javascript', wrangler:w})
 			var textToWrite = readDic();
 			var textFileAsBlob = new Blob([textToWrite], {type:'text/plain'});
 			var fileNameToSaveAs = "output.txt";
